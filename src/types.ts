@@ -5,7 +5,7 @@
 export type BrowserType = 'chromium' | 'firefox' | 'webkit'
 export type WaitUntilState = 'load' | 'domcontentloaded' | 'networkidle'
 export type DiffStyle = 'heatmap' | 'sidebyside' | 'overlay' | 'blend'
-export type ComparisonMethod = 'pixel' | 'ssim' | 'layout'
+export type ComparisonMethod = 'pixel' | 'ssim'
 export type PresetType = 'desktop' | 'mobile'
 
 /**
@@ -80,8 +80,6 @@ export interface CompareOptions {
   outputFormat?: 'png' | 'jpg' | 'webp'
   txt?: boolean
   json?: boolean
-  baselineSnapshot?: string
-  currentSnapshot?: string
 }
 
 /**
@@ -142,44 +140,6 @@ export interface SSIMComparisonResult {
 }
 
 /**
- * Layout diff for a single element
- */
-export interface LayoutDiff {
-  xpath: string
-  selector: string
-  status: 'moved' | 'resized' | 'added' | 'removed' | 'unchanged'
-  baselineRect?: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-  currentRect?: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-  positionDiff?: { dx: number; dy: number }
-  sizeDiff?: { dw: number; dh: number }
-  totalShift?: number
-}
-
-/**
- * Layout comparison result
- */
-export interface LayoutComparisonResult {
-  addedElements: number
-  removedElements: number
-  movedElements: number
-  resizedElements: number
-  maxShift: number
-  layoutDiffRatio: number
-  layoutDiffs: LayoutDiff[]
-  pass: boolean
-}
-
-/**
  * Structure diff for a single element
  */
 export interface StructureDiff {
@@ -212,7 +172,6 @@ export interface ComparisonResult {
   results: {
     pixel?: PixelComparisonResult
     ssim?: SSIMComparisonResult
-    layout?: LayoutComparisonResult
     structure?: StructureComparisonResult
   }
   overallPass: boolean

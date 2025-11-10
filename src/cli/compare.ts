@@ -18,8 +18,8 @@ export function createCompareCommand(): Command {
     .option('-o, --output <dir>', 'Output directory for diff images and reports', './tmp/diff/')
     .option(
       '--method <methods>',
-      'Comparison methods (comma-separated: pixel,ssim,layout)',
-      'pixel,layout'
+      'Comparison methods (comma-separated: pixel,ssim)',
+      'pixel'
     )
     .option('--threshold <number>', 'Diff threshold (0.0-1.0)', '0.002')
     .option('--diff-style <style>', 'Diff image style (heatmap|sidebyside|overlay|blend)', 'heatmap')
@@ -29,8 +29,6 @@ export function createCompareCommand(): Command {
     .option('--output-format <format>', 'Output format (png|jpg|webp)', 'png')
     .option('--disable-txt', 'Disable text report output (enabled by default)')
     .option('--disable-json', 'Disable JSON result output (enabled by default)')
-    .option('--baseline-snapshot <path>', 'Baseline structure snapshot JSON path (auto-detect if not specified)')
-    .option('--current-snapshot <path>', 'Current structure snapshot JSON path (auto-detect if not specified)')
     .action(async (baseline: string, current: string, cmdOptions) => {
       try {
         // Parse and validate options
@@ -48,7 +46,7 @@ export function createCompareCommand(): Command {
 
         // Parse methods
         const methods = cmdOptions.method.split(',').map((m: string) => m.trim()) as ComparisonMethod[]
-        const validMethods: ComparisonMethod[] = ['pixel', 'ssim', 'layout']
+        const validMethods: ComparisonMethod[] = ['pixel', 'ssim']
 
         for (const method of methods) {
           if (!validMethods.includes(method)) {
@@ -78,8 +76,6 @@ export function createCompareCommand(): Command {
           outputFormat: cmdOptions.outputFormat,
           txt: !cmdOptions.disableTxt,
           json: !cmdOptions.disableJson,
-          baselineSnapshot: cmdOptions.baselineSnapshot,
-          currentSnapshot: cmdOptions.currentSnapshot,
         }
 
         // Parse ignore regions if provided

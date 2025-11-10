@@ -1,7 +1,7 @@
 {
   "name": "page-regression-tester",
   "version": "0.1.0",
-  "description": "Visual regression testing tool for web pages with deterministic capture",
+  "description": "決定論的キャプチャによるWebページのビジュアルリグレッションテストツール / Visual regression testing tool for web pages with deterministic capture",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -10,22 +10,48 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write 'src/**/*.ts'",
     "test": "jest",
     "test:integration": "jest --config jest.integration.config.js",
     "test:coverage": "jest --coverage",
-    "prepublishOnly": "npm run build"
+    "prepack": "npm run rebuild && npm test",
+    "prepublishOnly": "npm run lint",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major"
   },
   "keywords": [
     "visual-regression",
     "screenshot",
     "testing",
     "playwright",
-    "image-diff"
+    "image-diff",
+    "deterministic",
+    "regression-testing",
+    "visual-testing",
+    "ssim",
+    "pixelmatch"
   ],
-  "author": "",
+  "author": "ideamans",
+  "homepage": "https://github.com/ideamans/page-regression-tester#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ideamans/page-regression-tester.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ideamans/page-regression-tester/issues"
+  },
   "license": "MIT",
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@playwright/test": "^1.40.0",
     "chalk": "^5.3.0",

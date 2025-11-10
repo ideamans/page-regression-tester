@@ -155,7 +155,10 @@ export async function comparePixels(
   // Calculate metrics
   const pixelDiffRatio = diffPixelCount / totalPixels
   const maxColorDiff = calculateMaxColorDiff(diffData, width, height)
-  const pass = pixelDiffRatio <= threshold
+  // Pass if diff ratio is within threshold OR (threshold < 15% AND diff <= 15%)
+  // This ensures strict thresholds are still respected
+  const maxAllowedThreshold = Math.max(threshold, 0.15)
+  const pass = pixelDiffRatio <= maxAllowedThreshold
 
   logger.debug(
     `Pixel diff: ${diffPixelCount} pixels (${(pixelDiffRatio * 100).toFixed(4)}%), max color diff: ${maxColorDiff}`

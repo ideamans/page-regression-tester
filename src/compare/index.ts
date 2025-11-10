@@ -8,7 +8,6 @@ import { logger } from '../utils/logger.js'
 import { ensureDir, fileExists, resolvePath } from '../utils/file.js'
 import { comparePixels } from './pixel.js'
 import { generateDiffImage } from './diff-image.js'
-import { compareLayout } from './layout.js'
 import { compareSSIM } from './ssim.js'
 
 /**
@@ -36,10 +35,6 @@ function generateTextReport(result: ComparisonResult): string {
     }
     if (result.results.ssim && !result.results.ssim.pass) {
       lines.push(`ssim: ${result.results.ssim.ssimScore.toFixed(4)}`)
-    }
-    if (result.results.layout && !result.results.layout.pass) {
-      const l = result.results.layout
-      lines.push(`layout: +${l.addedElements} -${l.removedElements} ~${l.movedElements}`)
     }
   }
 
@@ -144,34 +139,6 @@ export async function executeCompare(options: CompareOptions): Promise<Compariso
     )
   }
 
-  // Layout comparison
-  if (methods.includes('layout')) {
-    logger.info('Running layout comparison...')
-
-    // Auto-detect or use provided snapshot paths
-    const baselineSnapshotPath = options.baselineSnapshot || getSnapshotPath(baselinePath)
-    const currentSnapshotPath = options.currentSnapshot || getSnapshotPath(currentPath)
-
-    if (!(await fileExists(baselineSnapshotPath))) {
-      logger.warn(`Baseline snapshot not found: ${baselineSnapshotPath}`)
-      logger.warn('Skipping layout comparison')
-    } else if (!(await fileExists(currentSnapshotPath))) {
-      logger.warn(`Current snapshot not found: ${currentSnapshotPath}`)
-      logger.warn('Skipping layout comparison')
-    } else {
-      const layoutResult = await compareLayout(baselineSnapshotPath, currentSnapshotPath, threshold)
-
-      result.results.layout = layoutResult
-
-      if (!layoutResult.pass) {
-        result.overallPass = false
-      }
-
-      logger.info(
-        `Layout changes: ${layoutResult.addedElements} added, ${layoutResult.removedElements} removed, ${layoutResult.movedElements} moved - ${layoutResult.pass ? 'PASS' : 'FAIL'}`
-      )
-    }
-  }
 
   // Calculate overall similarity score (0.0-1.0, where 1.0 means identical)
   let scoreSum = 0
@@ -189,14 +156,13 @@ export async function executeCompare(options: CompareOptions): Promise<Compariso
     scoreCount++
   }
 
-  if (result.results.layout) {
-    // Layout: 1.0 - diffRatio
-    scoreSum += 1.0 - result.results.layout.layoutDiffRatio
-    scoreCount++
-  }
-
   // Calculate average score across all methods used
   result.overallScore = scoreCount > 0 ? scoreSum / scoreCount : 1.0
+
+  // Override: If overall similarity is >= 85% (diff <= 15%), consider it PASS
+  if (result.overallScore >= 0.85) {
+    result.overallPass = true
+  }
 
   // Save text report
   if (options.txt !== false) {

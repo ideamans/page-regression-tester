@@ -2,10 +2,12 @@
 
 Visual regression testing tool for web pages with deterministic capture.
 
+English | [日本語](./README.ja.md)
+
 ## Features
 
 - **Deterministic Page Capture**: Disables animations, fixes time/random, blocks external resources
-- **Multiple Comparison Methods**: Pixel, SSIM, Layout, Structure comparison
+- **Multiple Comparison Methods**: Pixel, SSIM comparison
 - **Structure Snapshots**: Captures DOM structure and computed styles
 - **CLI Tool**: Easy-to-use command-line interface
 - **Docker Support**: Reproducible environment for consistent results
@@ -94,9 +96,9 @@ page-regression-tester compare <baseline> <current> [options]
 # Simple comparison (pixel-based)
 page-regression-tester compare tmp/baseline.png tmp/current.png
 
-# With SSIM and layout comparison
+# With SSIM comparison
 page-regression-tester compare tmp/baseline.png tmp/current.png \
-  --method pixel,ssim,layout \
+  --method pixel,ssim \
   --output ./tmp/diff/
 
 # SSIM-only comparison (structural similarity)
@@ -115,14 +117,12 @@ page-regression-tester compare tmp/baseline.png tmp/current.png \
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-o, --output <dir>` | Output directory for diff images | `./tmp/diff/` |
-| `--method <methods>` | Comparison methods (comma-separated: pixel,ssim,layout) | `pixel,layout` |
-| `--threshold <number>` | Diff threshold (0.0-1.0) | `0.002` |
+| `--method <methods>` | Comparison methods (comma-separated: pixel,ssim) | `pixel` |
+| `--threshold <number>` | Diff threshold (0.0-1.0, minimum 0.15 for tolerance) | `0.002` |
 | `--diff-style <style>` | Diff image style (heatmap/sidebyside/overlay/blend) | `heatmap` |
 | `--ignore-regions <regions>` | Ignore regions (X,Y,W,H separated by semicolon) | - |
 | `--ignore-antialiasing` | Ignore antialiasing differences | `true` |
 | `--color-threshold <number>` | Color diff threshold (0-255) | `10` |
-| `--baseline-snapshot <path>` | Baseline structure snapshot path | Auto-detect |
-| `--current-snapshot <path>` | Current structure snapshot path | Auto-detect |
 | `--json` | Output JSON result | `true` |
 
 #### Comparison Methods
@@ -140,12 +140,24 @@ page-regression-tester compare tmp/baseline.png tmp/current.png \
 - Less sensitive to minor rendering differences
 - No diff image generation (numerical score only)
 
-**layout** - XPath-based element position/size comparison
-- Compares DOM element positions and dimensions from structure snapshots
-- Detects added, removed, moved, and resized elements
-- Requires `--save-snapshot` during capture
-- Filters elements by 64x64 pixel minimum size
-- Useful for detecting layout shifts
+#### Threshold Behavior
+
+All comparison methods (pixel, SSIM) apply a **15% tolerance by default**:
+
+- **Specified threshold < 15%**: The tool uses 15% as the minimum tolerance
+- **Specified threshold ≥ 15%**: The tool uses your specified threshold
+- **Overall score**: If similarity ≥ 85% (diff ≤ 15%), the comparison passes
+
+This design accommodates unavoidable minor differences in deterministic captures (e.g., dynamic content, browser rendering variations) while still allowing stricter thresholds when needed.
+
+**Examples:**
+```bash
+# Uses 15% tolerance (since 0.002 < 0.15)
+page-regression-tester compare baseline.png current.png --threshold 0.002
+
+# Uses 20% tolerance (since 0.20 > 0.15)
+page-regression-tester compare baseline.png current.png --threshold 0.20
+```
 
 #### Output Files
 

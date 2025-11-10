@@ -2,7 +2,6 @@
  * Pixel-level comparison using pixelmatch
  */
 
-import { readFile } from 'fs/promises'
 import sharp from 'sharp'
 import pixelmatch from 'pixelmatch'
 import type { PixelComparisonResult, IgnoreRegion } from '../types.js'

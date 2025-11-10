@@ -11,13 +11,6 @@ import { generateDiffImage } from './diff-image.js'
 import { compareSSIM } from './ssim.js'
 
 /**
- * Auto-detect snapshot file path from image path
- */
-function getSnapshotPath(imagePath: string): string {
-  return imagePath.replace(/\.(png|jpg|jpeg)$/i, '.snapshot.json')
-}
-
-/**
  * Generate text report from comparison result (concise, human-readable)
  */
 function generateTextReport(result: ComparisonResult): string {

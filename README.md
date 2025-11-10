@@ -296,9 +296,41 @@ npm test
 
 ### Phase 4: Production Ready
 - [ ] Docker support
-- [ ] Test coverage
+- [x] Test coverage (97%+ coverage with 83 unit tests)
 - [ ] CI/CD examples
 - [ ] Documentation improvements
+
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run integration tests
+npm run test:integration
+```
+
+### Test Coverage
+
+The project has comprehensive test coverage:
+
+- **Overall Coverage**: 97%+ (statements, branches, functions, lines)
+- **Unit Tests**: 83 tests covering:
+  - Utility modules (file, validator, logger, presets)
+  - Comparison modules (pixel, SSIM, layout, diff-image)
+  - Helper modules (image generation)
+
+**Test Files:**
+- `__tests__/utils/` - Utility function tests
+- `__tests__/compare/` - Comparison algorithm tests
+- `__tests__/helpers/` - Test helper utilities
+
+**Note**: Capture modules and CLI commands require integration tests with Playwright and are excluded from unit test coverage metrics.
 
 ## License
 

@@ -1,0 +1,222 @@
+/**
+ * Compare command implementation
+ */
+
+import { writeFile } from 'fs/promises'
+import type { CompareOptions, ComparisonResult } from '../types.js'
+import { logger } from '../utils/logger.js'
+import { ensureDir, fileExists, resolvePath } from '../utils/file.js'
+import { comparePixels } from './pixel.js'
+import { generateDiffImage } from './diff-image.js'
+import { compareLayout } from './layout.js'
+import { compareSSIM } from './ssim.js'
+
+/**
+ * Auto-detect snapshot file path from image path
+ */
+function getSnapshotPath(imagePath: string): string {
+  return imagePath.replace(/\.(png|jpg|jpeg)$/i, '.snapshot.json')
+}
+
+/**
+ * Generate text report from comparison result (concise, human-readable)
+ */
+function generateTextReport(result: ComparisonResult): string {
+  const lines: string[] = []
+
+  // Most important info first
+  lines.push(`result: ${result.overallPass ? 'PASS' : 'FAIL'}`)
+  lines.push(`score: ${(result.overallScore * 100).toFixed(2)}%`)
+  lines.push(`timestamp: ${result.timestamp}`)
+
+  // Detailed results if failed
+  if (!result.overallPass) {
+    if (result.results.pixel && !result.results.pixel.pass) {
+      lines.push(`pixel: ${(result.results.pixel.pixelDiffRatio * 100).toFixed(2)}% diff`)
+    }
+    if (result.results.ssim && !result.results.ssim.pass) {
+      lines.push(`ssim: ${result.results.ssim.ssimScore.toFixed(4)}`)
+    }
+    if (result.results.layout && !result.results.layout.pass) {
+      const l = result.results.layout
+      lines.push(`layout: +${l.addedElements} -${l.removedElements} ~${l.movedElements}`)
+    }
+  }
+
+  return lines.join('\n') + '\n'
+}
+
+/**
+ * Execute compare command
+ */
+export async function executeCompare(options: CompareOptions): Promise<ComparisonResult> {
+  const baselinePath = resolvePath(options.baseline)
+  const currentPath = resolvePath(options.current)
+  const outputDir = resolvePath(options.output)
+
+  // Validate input files exist
+  if (!(await fileExists(baselinePath))) {
+    throw new Error(`Baseline image not found: ${baselinePath}`)
+  }
+
+  if (!(await fileExists(currentPath))) {
+    throw new Error(`Current image not found: ${currentPath}`)
+  }
+
+  logger.info(`Comparing images...`)
+  logger.info(`Baseline: ${baselinePath}`)
+  logger.info(`Current: ${currentPath}`)
+
+  const methods = options.method || ['pixel']
+  const threshold = options.threshold ?? 0.002
+  const timestamp = new Date().toISOString()
+
+  const result: ComparisonResult = {
+    baseline: baselinePath,
+    current: currentPath,
+    timestamp,
+    methods,
+    threshold,
+    results: {},
+    overallPass: true,
+    overallScore: 1.0, // Will be calculated later
+  }
+
+  // Ensure output directory exists
+  await ensureDir(`${outputDir}/result.json`)
+
+  // Pixel comparison
+  if (methods.includes('pixel')) {
+    logger.info('Running pixel comparison...')
+
+    const { result: pixelResult, diffBuffer } = await comparePixels(baselinePath, currentPath, {
+      threshold,
+      colorThreshold: options.colorThreshold,
+      ignoreAntialiasing: options.ignoreAntialiasing,
+      ignoreRegions: options.ignoreRegions,
+    })
+
+    result.results.pixel = pixelResult
+
+    if (!pixelResult.pass) {
+      result.overallPass = false
+    }
+
+    logger.info(
+      `Pixel diff: ${pixelResult.pixelDiffCount} pixels (${(pixelResult.pixelDiffRatio * 100).toFixed(4)}%) - ${pixelResult.pass ? 'PASS' : 'FAIL'}`
+    )
+
+    // Generate diff images
+    const diffStyle = options.diffStyle || 'heatmap'
+
+    logger.info(`Generating diff image (${diffStyle})...`)
+    const diffImage = await generateDiffImage({
+      style: diffStyle,
+      baselinePath,
+      currentPath,
+      diffBuffer,
+    })
+
+    const diffPath = `${outputDir}/diff-${diffStyle}.png`
+    await writeFile(diffPath, diffImage)
+    logger.success(`Diff image saved: ${diffPath}`)
+
+    // Also save heatmap if a different style was chosen
+    if (diffStyle !== 'heatmap') {
+      const heatmapPath = `${outputDir}/diff-heatmap.png`
+      await writeFile(heatmapPath, diffBuffer)
+      logger.success(`Heatmap saved: ${heatmapPath}`)
+    }
+  }
+
+  // SSIM comparison
+  if (methods.includes('ssim')) {
+    const ssimResult = await compareSSIM(baselinePath, currentPath, threshold)
+
+    result.results.ssim = ssimResult
+
+    if (!ssimResult.pass) {
+      result.overallPass = false
+    }
+
+    logger.info(
+      `SSIM score: ${ssimResult.ssimScore.toFixed(4)} (diff: ${(ssimResult.ssimDiffRatio * 100).toFixed(4)}%) - ${ssimResult.pass ? 'PASS' : 'FAIL'}`
+    )
+  }
+
+  // Layout comparison
+  if (methods.includes('layout')) {
+    logger.info('Running layout comparison...')
+
+    // Auto-detect or use provided snapshot paths
+    const baselineSnapshotPath = options.baselineSnapshot || getSnapshotPath(baselinePath)
+    const currentSnapshotPath = options.currentSnapshot || getSnapshotPath(currentPath)
+
+    if (!(await fileExists(baselineSnapshotPath))) {
+      logger.warn(`Baseline snapshot not found: ${baselineSnapshotPath}`)
+      logger.warn('Skipping layout comparison')
+    } else if (!(await fileExists(currentSnapshotPath))) {
+      logger.warn(`Current snapshot not found: ${currentSnapshotPath}`)
+      logger.warn('Skipping layout comparison')
+    } else {
+      const layoutResult = await compareLayout(baselineSnapshotPath, currentSnapshotPath, threshold)
+
+      result.results.layout = layoutResult
+
+      if (!layoutResult.pass) {
+        result.overallPass = false
+      }
+
+      logger.info(
+        `Layout changes: ${layoutResult.addedElements} added, ${layoutResult.removedElements} removed, ${layoutResult.movedElements} moved - ${layoutResult.pass ? 'PASS' : 'FAIL'}`
+      )
+    }
+  }
+
+  // Calculate overall similarity score (0.0-1.0, where 1.0 means identical)
+  let scoreSum = 0
+  let scoreCount = 0
+
+  if (result.results.pixel) {
+    // Pixel: 1.0 - diffRatio
+    scoreSum += 1.0 - result.results.pixel.pixelDiffRatio
+    scoreCount++
+  }
+
+  if (result.results.ssim) {
+    // SSIM: already 0.0-1.0 where 1.0 is identical
+    scoreSum += result.results.ssim.ssimScore
+    scoreCount++
+  }
+
+  if (result.results.layout) {
+    // Layout: 1.0 - diffRatio
+    scoreSum += 1.0 - result.results.layout.layoutDiffRatio
+    scoreCount++
+  }
+
+  // Calculate average score across all methods used
+  result.overallScore = scoreCount > 0 ? scoreSum / scoreCount : 1.0
+
+  // Save text report
+  if (options.txt !== false) {
+    const txtPath = `${outputDir}/result.txt`
+    const textReport = generateTextReport(result)
+    await writeFile(txtPath, textReport)
+    logger.success(`Text report saved: ${txtPath}`)
+  }
+
+  // Save JSON result
+  if (options.json !== false) {
+    const jsonPath = `${outputDir}/result.json`
+    await writeFile(jsonPath, JSON.stringify(result, null, 2))
+    logger.success(`JSON result saved: ${jsonPath}`)
+  }
+
+  // Summary
+  logger.info('---')
+  logger.info(`Overall Score: ${(result.overallScore * 100).toFixed(2)}% similarity`)
+  logger.info(`Overall: ${result.overallPass ? 'PASS ✓' : 'FAIL ✗'}`)
+
+  return result
+}

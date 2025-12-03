@@ -30,9 +30,19 @@ export async function executeCapture(options: CaptureOptions): Promise<void> {
   logger.info(`Browser: ${browserType}, Headless: ${headless}`)
   logger.info(`Viewport: ${viewport.width}x${viewport.height}@${viewport.dpr}x`)
 
-  // Launch browser
+  // Launch browser with autoplay disabled
   const browserLauncher = browserType === 'firefox' ? firefox : browserType === 'webkit' ? webkit : chromium
-  const browser = await browserLauncher.launch({ headless })
+  const launchOptions: { headless: boolean; args?: string[] } = { headless }
+
+  // Add Chromium-specific args to disable autoplay
+  if (browserType === 'chromium') {
+    launchOptions.args = [
+      '--autoplay-policy=user-gesture-required', // Require user gesture for autoplay
+      '--disable-background-media-suspend', // Prevent media from being suspended
+    ]
+  }
+
+  const browser = await browserLauncher.launch(launchOptions)
 
   try {
     // Create context

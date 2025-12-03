@@ -82,6 +82,18 @@ export const DISABLE_AUTOPLAY_SCRIPT = `
     // Global flag for applications to check
     window.__E2E_DISABLE_AUTOPLAY__ = true;
 
+    // Helper function to freeze a media element
+    function freezeMedia(media) {
+      try {
+        media.pause();
+        media.currentTime = 0;
+        media.autoplay = false;
+        media.loop = false;
+        // Remove autoplay attribute if present
+        media.removeAttribute('autoplay');
+      } catch (e) {}
+    }
+
     // Disable video/audio autoplay and freeze at time 0
     HTMLMediaElement.prototype.play = function() {
       this.pause();
@@ -92,13 +104,15 @@ export const DISABLE_AUTOPLAY_SCRIPT = `
     // Prevent autoplay attribute from being set
     Object.defineProperty(HTMLMediaElement.prototype, 'autoplay', {
       get() { return false; },
-      set() {}
+      set() {},
+      configurable: true
     });
 
     // Prevent loop attribute
     Object.defineProperty(HTMLMediaElement.prototype, 'loop', {
       get() { return false; },
-      set() {}
+      set() {},
+      configurable: true
     });
 
     // Override load method to pause immediately
@@ -108,6 +122,40 @@ export const DISABLE_AUTOPLAY_SCRIPT = `
       this.pause();
       this.currentTime = 0;
     };
+
+    // Watch for dynamically added media elements using MutationObserver
+    const mediaObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType !== 1) return; // Skip non-element nodes
+
+          // Check if the added node is a media element
+          if (node.nodeName === 'VIDEO' || node.nodeName === 'AUDIO') {
+            freezeMedia(node);
+          }
+
+          // Check for media elements within the added node
+          if (node.querySelectorAll) {
+            node.querySelectorAll('video, audio').forEach(freezeMedia);
+          }
+        });
+      });
+    });
+
+    // Start observing as soon as document exists
+    if (document.documentElement) {
+      mediaObserver.observe(document.documentElement, {
+        childList: true,
+        subtree: true
+      });
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        mediaObserver.observe(document.documentElement, {
+          childList: true,
+          subtree: true
+        });
+      });
+    }
 
     // Stub setInterval/setTimeout to prevent auto-advancing carousels
     const intervals = new Set();
@@ -147,10 +195,7 @@ export const DISABLE_AUTOPLAY_SCRIPT = `
         intervals.clear();
 
         // Freeze all existing media elements
-        document.querySelectorAll('video, audio').forEach(media => {
-          media.pause();
-          media.currentTime = 0;
-        });
+        document.querySelectorAll('video, audio').forEach(freezeMedia);
       }, 100);
     });
   })();

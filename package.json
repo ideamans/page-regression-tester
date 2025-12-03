@@ -1,6 +1,6 @@
 {
   "name": "page-regression-tester",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "決定論的キャプチャによるWebページのビジュアルリグレッションテストツール / Visual regression testing tool for web pages with deterministic capture",
   "type": "module",
   "main": "dist/index.js",

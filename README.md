@@ -8,9 +8,8 @@ English | [日本語](./README.ja.md)
 
 - **Deterministic Page Capture**: Disables animations, fixes time/random, blocks external resources
 - **Multiple Comparison Methods**: Pixel, SSIM comparison
-- **Structure Snapshots**: Captures DOM structure and computed styles
+- **Structure Snapshots**: Saves DOM structure and computed styles as JSON alongside each capture
 - **CLI Tool**: Easy-to-use command-line interface
-- **Docker Support**: Reproducible environment for consistent results
 - **CI/CD Integration**: Designed for automated testing workflows
 
 ## Installation
@@ -226,14 +225,16 @@ page-regression-tester/
 ├── src/
 │   ├── cli/                    # CLI commands
 │   │   ├── index.ts            # Main CLI entry point
-│   │   └── capture.ts          # Capture command
+│   │   ├── capture.ts          # Capture command
+│   │   └── compare.ts          # Compare command
 │   ├── capture/                # Capture module
 │   │   ├── index.ts            # Capture execution
 │   │   ├── deterministic.ts   # Deterministic scripts
 │   │   └── snapshot.ts         # Structure snapshot
-│   ├── compare/                # Compare module (coming soon)
-│   ├── report/                 # Report generation (coming soon)
-│   ├── config/                 # Configuration loader (coming soon)
+│   ├── compare/                # Compare module
+│   │   ├── pixel.ts            # Pixel comparison
+│   │   ├── ssim.ts             # SSIM comparison
+│   │   └── diff-image.ts       # Diff image generation
 │   ├── utils/                  # Utilities
 │   │   ├── logger.ts           # Logging
 │   │   ├── file.ts             # File operations
@@ -294,7 +295,7 @@ npm test
 
 ### Phase 2: Compare ✅ Complete
 - [x] Pixel comparison (pixelmatch)
-- [x] Layout comparison (XPath-based)
+- [ ] Layout comparison (XPath-based)
 - [x] Diff image generation (heatmap/sidebyside/overlay/blend)
 - [x] JSON report generation
 - [x] Compare command CLI

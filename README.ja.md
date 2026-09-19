@@ -8,9 +8,8 @@
 
 - **決定論的ページキャプチャ**: アニメーション無効化、時刻・ランダム値の固定、外部リソースのブロック
 - **複数の比較メソッド**: Pixel（ピクセル単位）、SSIM（構造類似性）の2つの比較手法
-- **構造スナップショット**: DOM構造とスタイルをキャプチャし、レイアウトの変化を検出
+- **構造スナップショット**: キャプチャと一緒にDOM構造と計算済みスタイルをJSONで保存
 - **CLIツール**: 使いやすいコマンドラインインターフェース
-- **Docker対応**: 再現可能な環境で一貫した結果を保証
 - **CI/CD統合**: 自動テストワークフロー向けに設計
 
 ## インストール
@@ -227,7 +226,6 @@ page-regression-tester/
 │   ├── compare/                # Compareモジュール
 │   │   ├── pixel.ts            # ピクセル比較
 │   │   ├── ssim.ts             # SSIM比較
-│   │   ├── layout.ts           # レイアウト比較
 │   │   └── diff-image.ts       # 差分画像生成
 │   ├── utils/                  # ユーティリティ
 │   │   ├── logger.ts           # ロギング
@@ -309,7 +307,7 @@ npm run test:integration
 
 ### Phase 2: Compare ✅ 完了
 - [x] Pixel比較（pixelmatch）
-- [x] Layout比較（XPathベース）
+- [ ] Layout比較（XPathベース）
 - [x] 差分画像生成（heatmap/sidebyside/overlay/blend）
 - [x] JSONレポート生成
 - [x] Compare コマンドCLI

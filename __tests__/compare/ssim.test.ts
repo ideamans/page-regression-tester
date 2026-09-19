@@ -3,7 +3,12 @@
  */
 
 import { compareSSIM } from '../../src/compare/ssim.js'
-import { generateIdenticalImages, generateDifferentImages, generateSolidImage } from '../helpers/image-generator.js'
+import {
+  generateIdenticalImages,
+  generateDifferentImages,
+  generateSolidImage,
+  generateImageWithRect,
+} from '../helpers/image-generator.js'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { writeFile, rm, mkdir } from 'fs/promises'
@@ -75,6 +80,43 @@ describe('compareSSIM', () => {
 
   it('should throw error for non-existent file', async () => {
     await expect(compareSSIM('/nonexistent/baseline.png', '/nonexistent/current.png', 0.01)).rejects.toThrow()
+  })
+
+  // 縦長の全画面キャプチャで、幅より下の領域の変化を見逃さないこと
+  it('should detect a change near the bottom of a tall image', async () => {
+    const baseline = await generateSolidImage({ width: 90, height: 300 })
+    const current = await generateImageWithRect(90, 300, 0, 260, 90, 40)
+    await writeFile(baselinePath, baseline)
+    await writeFile(currentPath, current)
+
+    const result = await compareSSIM(baselinePath, currentPath, 0.01)
+
+    expect(result.ssimScore).toBeLessThan(1.0)
+    expect(result.ssimDiffRatio).toBeGreaterThan(0)
+  })
+
+  // 横長のビューポートキャプチャで、下端の変化を見逃さないこと
+  it('should detect a change near the bottom of a wide image', async () => {
+    const baseline = await generateSolidImage({ width: 300, height: 90 })
+    // 最下端の4行だけを変える（画像の外へはみ出すウィンドウでしか見ない範囲）
+    const current = await generateImageWithRect(300, 90, 0, 86, 300, 4)
+    await writeFile(baselinePath, baseline)
+    await writeFile(currentPath, current)
+
+    const result = await compareSSIM(baselinePath, currentPath, 0.01)
+
+    expect(Number.isFinite(result.ssimScore)).toBe(true)
+    expect(result.ssimScore).toBeLessThan(1.0)
+  })
+
+  it('should give a perfect score for identical non-square images', async () => {
+    const [baseline, current] = await generateIdenticalImages({ width: 160, height: 90 })
+    await writeFile(baselinePath, baseline)
+    await writeFile(currentPath, current)
+
+    const result = await compareSSIM(baselinePath, currentPath, 0.01)
+
+    expect(result.ssimScore).toBeCloseTo(1.0, 5)
   })
 
   it('should handle larger images', async () => {

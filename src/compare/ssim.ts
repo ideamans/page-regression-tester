@@ -21,7 +21,7 @@ const WINDOW_SIZE = 11 // Gaussian window size
 /**
  * Compute mean of a region
  */
-function computeMean(data: Buffer, x: number, y: number, width: number, windowSize: number): number {
+function computeMean(data: Buffer, x: number, y: number, width: number, height: number, windowSize: number): number {
   let sum = 0
   let count = 0
 
@@ -29,7 +29,7 @@ function computeMean(data: Buffer, x: number, y: number, width: number, windowSi
   const startX = Math.max(0, x - halfWindow)
   const endX = Math.min(width, x + halfWindow + 1)
   const startY = Math.max(0, y - halfWindow)
-  const endY = Math.min(width, y + halfWindow + 1) // Note: assumes square image for simplicity
+  const endY = Math.min(height, y + halfWindow + 1)
 
   for (let py = startY; py < endY; py++) {
     for (let px = startX; px < endX; px++) {
@@ -51,6 +51,7 @@ function computeVariance(
   x: number,
   y: number,
   width: number,
+  height: number,
   windowSize: number,
   mean1: number,
   mean2: number
@@ -64,7 +65,7 @@ function computeVariance(
   const startX = Math.max(0, x - halfWindow)
   const endX = Math.min(width, x + halfWindow + 1)
   const startY = Math.max(0, y - halfWindow)
-  const endY = Math.min(width, y + halfWindow + 1)
+  const endY = Math.min(height, y + halfWindow + 1)
 
   for (let py = startY; py < endY; py++) {
     for (let px = startX; px < endX; px++) {
@@ -98,8 +99,8 @@ function computeSSIM(data1: Buffer, data2: Buffer, width: number, height: number
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
       // Compute local means
-      const mean1 = computeMean(data1, x, y, width, WINDOW_SIZE)
-      const mean2 = computeMean(data2, x, y, width, WINDOW_SIZE)
+      const mean1 = computeMean(data1, x, y, width, height, WINDOW_SIZE)
+      const mean2 = computeMean(data2, x, y, width, height, WINDOW_SIZE)
 
       // Compute local variances and covariance
       const { variance1, variance2, covariance } = computeVariance(
@@ -108,6 +109,7 @@ function computeSSIM(data1: Buffer, data2: Buffer, width: number, height: number
         x,
         y,
         width,
+        height,
         WINDOW_SIZE,
         mean1,
         mean2

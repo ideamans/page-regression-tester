@@ -338,3 +338,8 @@ https://github.com/ideamans/page-regression-tester
 - [SPEC.md](./SPEC.md) - 詳細な仕様
 - [CONCEPT.md](./CONCEPT.md) - 設計思想とコンセプト
 - [Playwright Documentation](https://playwright.dev/)
+
+## リリース（メンテナー向け）
+
+package.json の version を上げてコミットし、`git tag vX.Y.Z && git push origin vX.Y.Z`。
+GitHub Actions が npm の Trusted Publishing（OIDC）で公開する（トークンは使わない）。

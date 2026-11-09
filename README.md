@@ -354,3 +354,8 @@ MIT
 - [SPEC.md](./SPEC.md) - Detailed specification
 - [CONCEPT.md](./CONCEPT.md) - Design philosophy and concepts
 - [Playwright Documentation](https://playwright.dev/)
+
+## Releasing (maintainers)
+
+Bump `version` in package.json, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+GitHub Actions publishes to npm with Trusted Publishing (OIDC); no token is used.

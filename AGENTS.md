@@ -22,3 +22,22 @@ Keep commit subjects short and imperative (history currently uses lowercase, e.g
 
 ## Security & Configuration Tips
 Use Node.js ≥20 as enforced in `package.json`. Keep API keys out of Git; prefer `.env` entries consumed via future `src/config` helpers. When targeting third-party pages, block analytics via CLI flags to avoid leaking data, and document any host permissions or mock setups in your PR description.
+
+## Publishing to npm
+
+Pushing a `v*` tag runs `.github/workflows/publish.yml`, which tests, builds and **publishes to npm directly**
+(no staged approval). It authenticates with npm Trusted Publishing (GitHub Actions OIDC); no `NPM_TOKEN` secret is used,
+and provenance is attached automatically.
+
+```bash
+# after bumping "version" in package.json and pushing the commit
+git tag vX.Y.Z && git push origin vX.Y.Z
+```
+
+- The job fails if the tag and the version in package.json differ, and does nothing if that version is already on npm.
+- A prerelease (`1.2.0-beta.0`) is published under its identifier as the dist-tag (`beta`), not `latest`.
+- Do not `npm publish` from a local machine (no tokens are kept).
+- To re-run without moving the tag, start "Publish to npm" with workflow_dispatch (it publishes the version in package.json on the chosen branch).
+- A PR that changes `publish.yml` runs the build and `npm pack --dry-run` without publishing.
+- Prerequisite: on npmjs.com, `page-regression-tester` lists GitHub Actions / `ideamans/page-regression-tester` / `publish.yml` with the **publish** permission as its
+  Trusted Publisher. With only the stage-publish permission, `npm publish` fails with `E403 OIDC permission denied`.

@@ -23,6 +23,8 @@ Keep commit subjects short and imperative (history currently uses lowercase, e.g
 ## Security & Configuration Tips
 Use Node.js ≥20 as enforced in `package.json`. Keep API keys out of Git; prefer `.env` entries consumed via future `src/config` helpers. When targeting third-party pages, block analytics via CLI flags to avoid leaking data, and document any host permissions or mock setups in your PR description.
 
+`package.json` の `overrides` で `@typescript-eslint/typescript-estree` 配下の `minimatch` を `^9.0.9` に上げている（2026-11-12）。typescript-estree 6.21.0 が `minimatch@9.0.3` を完全固定しており、High の GHSA（修正は 9.0.7）が残るため。開発用（eslint）だけに効く。typescript-eslint を 7 以上に上げたら外してよい。minimatch 9 の moderate（修正は 11）と deepmerge の low は残している。
+
 ## Publishing to npm
 
 Pushing a `v*` tag runs `.github/workflows/publish.yml`, which tests, builds and **publishes to npm directly**
